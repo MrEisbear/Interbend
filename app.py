@@ -17,6 +17,22 @@ jwt_expire=int(os.getenv('JWT_EXPIRATION')) #In days
 # Implemented authentication and data security practices aligned with ISO/IEC 27001 standards
 # /\ AI generated for resume. Lol
 
+def jwt_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        token = request.cookies.get("token")
+        if not token:
+            return jsonify({"error": "Authentication required"}), 400
+        try:
+            payload = jwt.decode(token, jwt_key, algorithms=["HS256"])
+            request.bid = payload["bid"]
+        except jwt.ExpiredSignatureError:
+            return jsonify({"error": "Token expired"}), 401
+        except jwt.InvalidTokenError:
+            return jsonify({"error": "Invalid token"}), 401
+        return f(*args, **kwargs)
+    return decorated_function
+
 # DATABASE CONNECTION
 db = mysql.connector.connect(
     host=os.getenv('DB_HOST'),
@@ -78,7 +94,9 @@ def register():
                           (bid, username, email, password_hash))
         db.commit()
         token = token_gen(bid)
-        return jsonify({"message": "User registered successfully.","token": token}), 201
+        response = make_response(jsonify({"message": "Login successful."}), 201)
+        response.set_cookie('token', token, httponly=True, samesite='Strict', max_age=30 * 24 * 60 * 60)
+        return response
     except mysql.connector.IntegrityError:
         return jsonify({"error": "Username or email already exists."}), 409
 
@@ -103,7 +121,49 @@ def login():
     # secure=True - Implement once HTTPS
     return response
 
-@app.route('/admin/change-password', methods=['POST'])
+@app.route('/transfer', methods=['POST'])
+@jwt_required
+def transfer():
+    token = request.cookies.get("token")
+    if not token:
+        return jsonify({"error": "Authentication required"}), 400
+    try:
+        payload = jwt.decode(token, jwt_key, algorithms=["HS256"])
+    except jwt.ExpiredSignatureError:
+        return jsonify({"error": "Token expired"}), 401
+    except jwt.InvalidTokenError:
+        return jsonify({"error": "Invalid token"}), 401
+    user_bid = payload["bid"]
+    data = request.get_json()
+    fbid = data.get('from')
+    tbid = data.get('to')
+    amount = data.get('amount')
+    if not tbid or not amount:
+        return jsonify({"error": "To and amount are required"}), 400
+    if not fbid:
+        fbid = user_bid
+    if fbid != user_bid:
+        return jsonify({"error": "Unauthorized transfer from another account"}), 401
+    try:
+        amount = float(amount)
+        if amount <= 0:
+            raise ValueError
+    except ValueError:
+        return jsonify({"error": "Invalid amount","message":"Try to request Money instead"}), 400
+    sender = get_user(fbid)
+    receiver = get_user(tbid)
+    if not sender or not receiver:
+        return jsonify({"error":"User not found"}), 404
+    if sender["balance"] < amount:
+        return jsonify({"error": "Insufficient funds"}), 400
+    with db.cursor(dictionary=True) as cur:
+        cur.execute("UPDATE users SET balance = balance - %s WHERE bid = %s", (amount, fbid))
+        cur.execute("UPDATE users SET balance = balance + %s WHERE bid = %s", (amount, tbid))
+    db.commit()
+    return jsonify({"message": "Transfer successful"}), 200
+
+
+@app.route('/admin/change-password', methods=['POST', 'PATCH'])
 def change_password():
     data = request.get_json()
     bid = data.get('bid')
