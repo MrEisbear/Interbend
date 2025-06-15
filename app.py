@@ -7,6 +7,7 @@ import mysql.connector
 import os
 from dotenv import load_dotenv
 import jwt
+import hmac
 
 load_dotenv()
 app = Flask(__name__)
@@ -156,11 +157,17 @@ def transfer():
         return jsonify({"error":"User not found"}), 404
     if sender["balance"] < amount:
         return jsonify({"error": "Insufficient funds"}), 400
-    with db.cursor(dictionary=True) as cur:
-        cur.execute("UPDATE users SET balance = balance - %s WHERE bid = %s", (amount, fbid))
-        cur.execute("UPDATE users SET balance = balance + %s WHERE bid = %s", (amount, tbid))
-    db.commit()
-    return jsonify({"message": "Transfer successful"}), 200
+    try:
+        db.start_transaction()
+        with db.cursor(dictionary=True) as cur:
+            cur.execute("UPDATE users SET balance = balance - %s WHERE bid = %s", (amount, fbid))
+            cur.execute("UPDATE users SET balance = balance + %s WHERE bid = %s", (amount, tbid))
+        db.commit()
+        return jsonify({"message": "Transfer successful"}), 200
+    except mysql.connector.Error as err:
+        db.rollback()
+        print(f"Transactional Error: {err}")
+        return jsonify({"error": "A database error occurred during the transfer."}), 500
 
 
 @app.route('/admin/change-password', methods=['POST', 'PATCH'])
@@ -171,7 +178,8 @@ def change_password():
     key = data.get('key')
     if not bid or not new_password or not key:
         return jsonify({"error": "BID, new password, and key are required"}), 400
-    if key != os.getenv('ADMIN_KEY'):
+    oskey = os.getenv('ADMIN_KEY')
+    if not oskey or not hmac.compare_digest(key, oskey):
         return jsonify({"error": "Admin Key required"}), 403
     user = get_user(bid)
     if not user:
