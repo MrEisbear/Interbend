@@ -1,76 +1,15 @@
-from flask import Flask, request, jsonify, make_response
-from functools import wraps
+from flask import Blueprint, make_response
 from werkzeug.security import generate_password_hash, check_password_hash
-from datetime import datetime, timedelta
-from datetime import timezone
-import mysql.connector
-import os
-from dotenv import load_dotenv
-import jwt
 import hmac
+import mysql.connector
 
-load_dotenv()
-app = Flask(__name__)
+# custom
+from interbend.db import db, get_user
+from interbend.auth import *
 
-# JWT Init
-jwt_key=os.getenv('JWT_KEY')
-jwt_expire=int(os.getenv('JWT_EXPIRATION')) #In days
-# Implemented authentication and data security practices aligned with ISO/IEC 27001 standards
-# /\ AI generated for resume. Lol
+main_bp = Blueprint('main_bp', __name__)
 
-def jwt_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        token = request.cookies.get("token")
-        if not token:
-            return jsonify({"error": "Authentication required"}), 400
-        try:
-            payload = jwt.decode(token, jwt_key, algorithms=["HS256"])
-            request.bid = payload["bid"]
-        except jwt.ExpiredSignatureError:
-            return jsonify({"error": "Token expired"}), 401
-        except jwt.InvalidTokenError:
-            return jsonify({"error": "Invalid token"}), 401
-        return f(*args, **kwargs)
-    return decorated_function
-
-# DATABASE CONNECTION
-db = mysql.connector.connect(
-    host=os.getenv('DB_HOST'),
-    user=os.getenv('DB_USER'),
-    password=os.getenv('DB_PASSWORD'),
-    database=os.getenv('DB_NAME')
-)
-with db.cursor(dictionary=True) as cursor:
-    cursor.execute("CREATE TABLE IF NOT EXISTS users ("
-               "bid VARCHAR(32) PRIMARY KEY,"
-               "username VARCHAR(64) NOT NULL,"
-               "email VARCHAR(128) NOT NULL,"
-               "password_hash TEXT,"
-               "balance DECIMAL(18, 2) DEFAULT 7500,"
-               "job INT,"
-               "salary_class INT,"
-               "collected DATETIME"
-               ");")
-    cursor.execute("CREATE TABLE IF NOT EXISTS salary ("
-               "class INT PRIMARY KEY,"
-               "money DECIMAL(18, 2));")
-db.commit()
-
-def token_gen(bid):
-    exptime = datetime.now(timezone.utc) + timedelta(days=jwt_expire)
-    token = jwt.encode(
-        {"bid": bid, "exp": exptime},
-        jwt_key,
-        algorithm="HS256")
-    return token
-
-def get_user(bid):
-    with db.cursor(dictionary=True) as cur:
-        cur.execute("SELECT * FROM users WHERE bid = %s", (bid,))
-        return cur.fetchone()
-
-@app.route('/balance', methods=['GET'])
+@main_bp.route('/balance', methods=['GET'])
 def get_balance():
     bid = request.args.get('bid')
     user = get_user(bid)
@@ -78,7 +17,7 @@ def get_balance():
         return jsonify({"error": "User not found."}), 404
     return jsonify({"balance": user["balance"]})
 
-@app.route('/register', methods=['POST'])
+@main_bp.route('/register', methods=['POST'])
 def register():
     data = request.get_json()
     bid = data.get('bid')
@@ -103,7 +42,7 @@ def register():
 
 
 
-@app.route('/login', methods=['POST'])
+@main_bp.route('/login', methods=['POST'])
 def login():
     data = request.get_json()
     bid = data.get('bid')
@@ -122,19 +61,11 @@ def login():
     # secure=True - Implement once HTTPS
     return response
 
-@app.route('/transfer', methods=['POST'])
+@main_bp.route('/transfer', methods=['POST'])
 @jwt_required
 def transfer():
-    token = request.cookies.get("token")
-    if not token:
-        return jsonify({"error": "Authentication required"}), 400
-    try:
-        payload = jwt.decode(token, jwt_key, algorithms=["HS256"])
-    except jwt.ExpiredSignatureError:
-        return jsonify({"error": "Token expired"}), 401
-    except jwt.InvalidTokenError:
-        return jsonify({"error": "Invalid token"}), 401
-    user_bid = payload["bid"]
+    # Ignore warning because its dynamically added via jwt required.
+    user_bid = request.bid
     data = request.get_json()
     fbid = data.get('from')
     tbid = data.get('to')
@@ -170,7 +101,7 @@ def transfer():
         return jsonify({"error": "A database error occurred during the transfer."}), 500
 
 
-@app.route('/admin/change-password', methods=['POST', 'PATCH'])
+@main_bp.route('/admin/change-password', methods=['POST', 'PATCH'])
 def change_password():
     data = request.get_json()
     bid = data.get('bid')
@@ -178,7 +109,7 @@ def change_password():
     key = data.get('key')
     if not bid or not new_password or not key:
         return jsonify({"error": "BID, new password, and key are required"}), 400
-    oskey = os.getenv('ADMIN_KEY')
+    oskey = current_app.config['ADMIN_KEY']
     if not oskey or not hmac.compare_digest(key, oskey):
         return jsonify({"error": "Admin Key required"}), 403
     user = get_user(bid)
@@ -190,13 +121,11 @@ def change_password():
     db.commit()
     return jsonify({"message": "Password changed successfully"}), 200
 
-@app.route('/collect', methods=['POST'])
+@main_bp.route('/collect', methods=['POST'])
 def collect_salary():
     return jsonify({"message":"no implementation"}), 501
 
-@app.route('/')
+@main_bp.route('/')
 def hello_world():  # put application's code here
     return 'Hello World!'
 
-if __name__ == '__main__':
-    app.run()
