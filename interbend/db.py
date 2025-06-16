@@ -16,8 +16,6 @@ def init_db():
                    "email VARCHAR(128) NOT NULL,"
                    "password_hash TEXT,"
                    "balance DECIMAL(18, 2) DEFAULT 7500,"
-                   "job INT,"
-                   "salary_class INT,"
                    "collected DATETIME"
                    ");")
         cursor.execute("CREATE TABLE IF NOT EXISTS salary ("
@@ -27,6 +25,19 @@ def init_db():
                        "time DATETIME PRIMARY KEY,"
                        "bid VARCHAR(32),"
                        "action TEXT);")
+        cursor.execute("CREATE TABLE IF NOT EXISTS jobs("
+                       "job_id INT PRIMARY KEY AUTO_INCREMENT,"
+                       "job_name VARCHAR(100) NOT NULL,"
+                       "salary_class INT NOT NULL"
+                       ");")
+        cursor.execute("CREATE TABLE IF NOT EXISTS user_jobs("
+                       "user_bid VARCHAR(32) NOT NULL,"
+                       "job_id INT NOT NULL,"
+                       "collected DATETIME,"
+                       "PRIMARY KEY (user_bid, job_id),"
+                       "FOREIGN KEY (user_bid) REFERENCES users(bid),"
+                       "FOREIGN KEY (job_id) REFERENCES jobs(job_id)"
+                       ")")
     db.commit()
     print("Tables Checked!")
 
