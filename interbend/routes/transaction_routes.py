@@ -1,4 +1,6 @@
 from flask import Blueprint
+
+from config import Config
 from interbend.db import db, get_user
 from interbend.auth import *
 import mysql.connector
@@ -13,10 +15,41 @@ def get_balance():
         return jsonify({"error": "User not found."}), 404
     return jsonify({"balance": user["balance"]})
 
+@transactions_bp.route('/collect', methods=['POST'])
+@jwt_required
+def collect():
+    user_bid = request.bid
+    data = request.get_json()
+    cooldown = Config.COLLECT_COOLDOWN
+    try:
+        db.start_transaction()
+        with db.cursor(dictionary=True) as cur:
+            query = """
+                SELECT uj.job_id, \
+                   uj.collected, \
+                   j.salary_class, \
+                   s.money AS salary_amount
+                FROM user_jobs uj \
+                     JOIN jobs j ON uj.job_id = j.job_id \
+                     JOIN salary s ON j.salary_class = s.class
+                WHERE uj.user_bid = %s \
+            """
+        cur.execute(query, (user_bid,))
+        user_jobs = cur.fetchall()
+        if not user_jobs:
+            db.rollback()
+            return jsonify({"error": "You do not have a job to collect a salary from."}), 400
+        total_payout = 0
+        jobs_collected_count = 0
+        now = datetime.now(timezone.utc)
+
+
+
+
 @transactions_bp.route('/transfer', methods=['POST'])
 @jwt_required
 def transfer():
-    # Ignore warning because its dynamically added via jwt required.
+    # Ignore warning because it's dynamically added via jwt required.
     user_bid = request.bid
     data = request.get_json()
     fbid = data.get('from')
