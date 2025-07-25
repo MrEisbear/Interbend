@@ -61,6 +61,8 @@ def collect():
         with db.cursor(dictionary=True) as cur:
             cur.execute("UPDATE users SET balance = balance + %s WHERE bid = %s", (amount, bid,))
             cur.execute("UPDATE user_jobs SET collected = %s WHERE bid = %s", (datetime.now(timezone.utc), bid,))
+            cur.execute("INSERT INTO transactions (source, target, amount, type, timestamp, status) VALUES (%s, %s, "
+                        "%s, %s, %s, %s)", "NULL", bid, amount, "salary", datetime.now(timezone.utc), "completed",)
             cur.execute("SELECT balance FROM users WHERE bid = %s", (bid,))
             new_bal2 = cur.fetchone()
             new_bal = new_bal2["balance"]
