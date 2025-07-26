@@ -1,3 +1,5 @@
+import secrets
+import string
 from functools import wraps
 from flask import request, jsonify, current_app
 import jwt
@@ -7,6 +9,12 @@ def _getconfig():
     jwt_key = current_app.config['JWT_KEY']
     jwt_expire = current_app.config['JWT_EXPIRE']  # In days
     return jwt_key, jwt_expire
+
+def r_gen2(length):
+    if length < 1:
+        raise ValueError("Length must be at least 1")
+    first_digit = secrets.choice(string.digits.replace('0', ''))
+    return first_digit + ''.join(secrets.choice(string.digits) for _ in range(length - 1))
 
 def jwt_required(f):
     @wraps(f)
