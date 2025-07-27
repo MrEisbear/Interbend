@@ -82,6 +82,7 @@ def transfer():
     fbid = data.get('from')
     tbid = data.get('to')
     amount = data.get('amount')
+    note = data.get('note')
     if not tbid or not amount:
         return jsonify({"error": "To and amount are required"}), 400
     if not fbid:
@@ -105,6 +106,9 @@ def transfer():
         with db.cursor(dictionary=True) as cur:
             cur.execute("UPDATE users SET balance = balance - %s WHERE bid = %s", (amount, fbid))
             cur.execute("UPDATE users SET balance = balance + %s WHERE bid = %s", (amount, tbid))
+            cur.execute("INSERT INTO transactions (source, target, amount, note, type, timestamp, status) VALUES (%s, %s, "
+                        "%s, %s, %s, %s)", fbid, tbid, amount, note, "transfer", datetime.now(timezone.utc),
+                        "completed", )
         db.commit()
         return jsonify({"message": "Transfer successful"}), 200
     except mysql.connector.Error as err:
