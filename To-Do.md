@@ -4,18 +4,41 @@ This file tracks potential new features and improvements for the Interbend banki
 
 ## Feature Suggestions
 
-1.  **Automated Payroll System:**
-    *   **Description:** Instead of requiring users to manually call the `/collect` endpoint, a scheduled script could run periodically (e.g., every 24 hours) to automatically distribute salaries to all eligible users.
-    *   **Benefits:** Improves user experience, ensures consistent pay, and reduces repeated API calls to the server.
-    * **Important:** Due to the concept of this whole system it needs to be considered to only pay users who are attend. Bad Idea.
-    * **Alternative:** Implement system to make sure you can only collect if the host is online. Make admin route to open server (set global bool)
+1.  **Automated Payroll System**
+    * **Description:** Instead of requiring users to manually call the `/collect` endpoint, a scheduled script could run periodically to automatically distribute salaries to all eligible users.
+    * **Benefits:** Improves user experience, ensures consistent pay, and reduces repeated API calls to the server.
+    * **Status:** Under Review
+    * **Note:** Due to system concept, needs to be modified to only pay active users.
+    * **Alternative:** Implement system to verify host is online; add admin route to control server availability.
 
-2.  **User Transaction History:**
-    *   **Description:** Create a new API endpoint (e.g., `GET /transactions`) that allows an authenticated user to retrieve a paginated list of their own transaction history.
-    *   **Benefits:** Provides users with transparency and a way to track their finances, which is a core feature of any banking application.
+2.  **User Transaction History**
+    * **Description:** Create API endpoint for retrieving paginated transaction history.
+    * **Benefits:** Provides transparency and financial tracking for users.
+    * **Status:** COMPLETED
+    * **Note:** Needs verification testing.
 
-    * FINISHED: PLEASE CHECK IF WORKING!
+3.  **Changeable Tax Rate**
+    * **Description:** Add system for dynamic tax rate adjustment through admin interface.
+    * **Benefits:** Allows economic control and flexibility for different transaction types.
+    * **Status:** In Progress
+    * **Implementation:** Store in database for persistence, add admin routes for modification.
 
-Frontend?
+4.  **User Roles System**
+    * **Description:** Implement comprehensive role-based access control (RBAC).
+    * **Benefits:** Enables different permissions for police, government, admin, and regular users.
+    * **Status:** Not Started
+    * **Required Features:**
+        - Role assignment and management
+        - Permission hierarchy
+        - Role-specific interfaces
+        - Audit logging for role changes
 
-idfk?
+5.  **Frontend Development**
+    * **Description:** Create user interface for the banking system.
+    * **Benefits:** Provides intuitive access to banking features.
+    * **Status:** Not Started
+    * **Components Needed:**
+        - User dashboard
+        - Transaction interface
+        - Admin control panel
+        - Role-specific views
