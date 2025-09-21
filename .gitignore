@@ -1,3 +1,9 @@
 .venv/
 .env
 .idea/
+.vscode/
+__pycache__/
+*.pyc
+instance/
+db.sqlite3
+

@@ -76,7 +76,23 @@ def collect():
         current_app.logger.error(f"An unexpected error occurred in /collect: {e}")
         return jsonify({"error": "An unexpected server error occurred."}), 500
 
-
+@transactions_bp.route('/transactions', methods=['GET'])
+@jwt_required
+def get_transactions():
+    user_bid = request.bid
+    limit = request.args.get('limit', default=10, type=int)
+    try:
+        with db.cursor(dictionary=True) as cur:
+            cur.execute("SELECT * FROM transactions WHERE source = %s OR target = %s ORDER BY timestamp DESC LIMIT %s", (user_bid, user_bid, limit))
+            transactions = cur.fetchall()
+            return jsonify({"transactions": transactions}), 200
+    except mysql.connector.Error as err:
+        current_app.logger.error(f"Database error in /transactions: {err}")
+        return jsonify({"error": "A database error occurred, please try again later."}), 500
+    except Exception as e:
+        current_app.logger.error(f"An unexpected error occurred in /transactions: {e}")
+        return jsonify({"error": "An unexpected server error occurred."}), 500
+    
 
 # this should be fine
 @transactions_bp.route('/transfer', methods=['POST'])
