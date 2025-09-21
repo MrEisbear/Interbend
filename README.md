@@ -69,6 +69,10 @@ The application will start in debug mode on `http://127.0.0.1:5000`.
     -   **Request Body**: `{ "to": "recipient_bid", "amount": 50.00, "note": "Payment for services" }`
     -   **Response**: A success message.
 
+-   **`POST /transfer-business`**: Transfers a specified amount from the authenticated user to another user with an appled tax.
+    -   **Authentication**: JWT token required.
+    -   **Request Body**: `{ "to": "recipient_bid", "amount": 50.00, "note": "Payment for services" }`
+    -   **Response**: A success message.
 ### Admin
 
 All admin endpoints require an admin key in the request body.
