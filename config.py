@@ -19,3 +19,4 @@ class Config:
     # Admin
     ADMIN_KEY = os.getenv('ADMIN_KEY')
     COLLECT_COOLDOWN = int(os.getenv('COLLECT_COOLDOWN', 24))
+    TAX_ACCOUNT_BID = os.getenv('TAX_ACCOUNT_BID')

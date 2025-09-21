@@ -25,13 +25,14 @@ Interbend is a Flask-based web application that provides a backend API for manag
     Create a `.env` file in the root directory of the project and add the following variables:
     ```
     JWT_KEY=your_secret_jwt_key
-    JWT_EXPIRATION=30
+    JWT_EXPIRATION=30 // jwt experation duration in days
     DB_HOST=your_database_host
     DB_USER=your_database_user
     DB_PASSWORD=your_database_password
     DB_NAME=your_database_name
     ADMIN_KEY=your_secret_admin_key
-    COLLECT_COOLDOWN=30
+    COLLECT_COOLDOWN=24 // collect cooldown in hours
+    TAX_ACCOUNT_BID=BUSINESS_BID_HERE // tax account bid here
     ```
 
 ## Usage

@@ -15,3 +15,7 @@ This file tracks potential new features and improvements for the Interbend banki
     *   **Benefits:** Provides users with transparency and a way to track their finances, which is a core feature of any banking application.
 
     * FINISHED: PLEASE CHECK IF WORKING!
+
+Frontend?
+
+idfk?

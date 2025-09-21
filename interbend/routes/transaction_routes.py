@@ -94,23 +94,17 @@ def get_transactions():
         return jsonify({"error": "An unexpected server error occurred."}), 500
     
 
-# this should be fine
-@transactions_bp.route('/transfer', methods=['POST'])
-@jwt_required
-def transfer():
-    # Ignore warning because it's dynamically added via jwt required.
-    user_bid = request.bid
-    data = request.get_json()
-    fbid = data.get('from')
-    tbid = data.get('to')
-    amount = data.get('amount')
-    note = data.get('note')
-    if not tbid or not amount:
-        return jsonify({"error": "To and amount are required"}), 400
-    if not fbid:
-        fbid = user_bid
-    if fbid != user_bid:
-        return jsonify({"error": "Unauthorized transfer from another account"}), 401
+# this should be fine (not)
+
+def transfer_boilerplate(user_bid, fbid, tbid, amount, note, type):
+    if not user_bid or not fbid or not tbid or not amount:
+        return jsonify({"error": "From, To, and amount are required"}), 400
+    if not note:
+        print(f"{type} failed to provide note. No trace available because I am lazy to program such things.")
+        return jsonify ({"error": "Note shouldve been passed by internal method."}), 500
+    if not type in [0, 1, 2, 3, 4, 5, 6, 7, 8]: # 0 = personal, 1 = business, 2 = fine, 3 = salary, 4 = bill, 5 = admin adjustment, 6 = placeholder, 7 = placeholder2, 8 = other
+        print(f"type was {type}, which is invalid. This is a bug. Internal Method failed to provide a valid type. No trace available because I am lazy to program such things.")
+        return jsonify({"error": "Internal method failed to provide a valid type."}), 500
     try:
         amount = float(amount)
         if amount <= 0:
@@ -121,6 +115,15 @@ def transfer():
     receiver = get_user(tbid)
     if not sender or not receiver:
         return jsonify({"error":"User not found"}), 404
+    # here is space to add tax if its a business transaction.
+    if type == 1:  # Business Transfer
+        gtax = 0.3  # 30% tax for business transactions - configurable later TO DO
+        tax = amount * gtax
+        note += f" (Tax applied: {tax})"
+        tax_account_bid = Config.TAX_ACCOUNT_BID
+        if sender["balance"] < amount + tax:
+            return jsonify({"error": "Insufficient funds"}), 400
+        
     if sender["balance"] < amount:
         return jsonify({"error": "Insufficient funds"}), 400
     try:
@@ -128,6 +131,9 @@ def transfer():
         with db.cursor(dictionary=True) as cur:
             cur.execute("UPDATE users SET balance = balance - %s WHERE bid = %s", (amount, fbid))
             cur.execute("UPDATE users SET balance = balance + %s WHERE bid = %s", (amount, tbid))
+            if type == 1:  # Business Transfer
+                cur.execute("UPDATE users SET balance = balance - %s WHERE bid = %s", (tax, fbid))
+                cur.execute("UPDATE users SET balance = balance + %s WHERE bid = %s", (tax, tax_account_bid))
             cur.execute("INSERT INTO transactions (source, target, amount, note, type, timestamp, status) VALUES (%s, %s, "
                         "%s, %s, %s, %s)", fbid, tbid, amount, note, "transfer", datetime.now(timezone.utc),
                         "completed", )
@@ -137,3 +143,43 @@ def transfer():
         db.rollback()
         print(f"Transactional Error: {err}")
         return jsonify({"error": "A database error occurred during the transfer."}), 500
+
+# PERSONAL TRANSFERS
+@transactions_bp.route('/transfer', methods=['POST'])
+@jwt_required
+def transfer():
+    # Ignore warning because it's dynamically added via jwt required.
+    user_bid = request.bid
+    data = request.get_json()
+    fbid = data.get('from')
+    tbid = data.get('to')
+    amount = data.get('amount')
+    note = data.get('note')
+    type = int(0) # Personal Transfer
+    if not fbid:
+        user_bid = fbid
+    if fbid != user_bid:
+        return jsonify({"error": "Unauthorized transfer from another account"}), 401
+    if not note:
+        note = "No note provided, Personal Transfer from " + fbid
+    return transfer_boilerplate(user_bid, fbid, tbid, amount, note, type)
+
+# BUSINESS TRANSFERS
+@transactions_bp.route('/transfer', methods=['POST'])
+@jwt_required
+def transfer():
+    # Ignore warning because it's dynamically added via jwt required.
+    user_bid = request.bid
+    data = request.get_json()
+    fbid = data.get('from')
+    tbid = data.get('to')
+    amount = data.get('amount')
+    note = data.get('note')
+    type = int(1) # Business Transfer
+    if not fbid:
+        user_bid = fbid
+    if fbid != user_bid:
+        return jsonify({"error": "Unauthorized transfer from another account"}), 401
+    if not note:
+        note = "No note provided, Business Transfer from " + fbid
+    return transfer_boilerplate(user_bid, fbid, tbid, amount, note, type)
