@@ -20,58 +20,61 @@ def get_balance():
 def collect():
     bid = request.bid
     cooldown = Config.COLLECT_COOLDOWN
+
     try:
         with db.cursor(dictionary=True) as cur:
+            # 1. Get user job
             cur.execute("SELECT * FROM user_jobs WHERE bid = %s", (bid,))
             user_jt = cur.fetchone()
-        if not user_jt:
-            return jsonify({"error": "You dont have any Jobs"}), 404
-        active_cooldown = user_jt["collected"]
-    except mysql.connector.Error as err:
-        current_app.logger.error(f"Database error in collect, salary: {err}")
-        return jsonify({"error": "A database error occurred, please try again later."}), 500
-    if active_cooldown + timedelta(hours=cooldown) > datetime.now(timezone.utc):
-        remaining_time = (active_cooldown + timedelta(hours=cooldown)) - datetime.now(timezone.utc)
-        hours = int(remaining_time.total_seconds() // 3600)
-        minutes = int(remaining_time.total_seconds() % 3600 // 60)
-        return jsonify({"error": f"You can only collect your salary every {cooldown} hours. Please wait {hours}h {minutes}m."}), 429
-    job = user_jt["job_id"]
-    try:
-        with db.cursor(dictionary=True) as cur:
-            cur.execute("SELECT * FROM jobs WHERE job_id = %i", (job,))
+            if not user_jt:
+                return jsonify({"error": "You dont have any Jobs"}), 404
+
+            # 2. Check cooldown
+            active_cooldown = user_jt.get("collected")
+            if active_cooldown and (active_cooldown + timedelta(hours=cooldown) > datetime.now(timezone.utc)):
+                remaining_time = (active_cooldown + timedelta(hours=cooldown)) - datetime.now(timezone.utc)
+                hours = int(remaining_time.total_seconds() // 3600)
+                minutes = int(remaining_time.total_seconds() % 3600 // 60)
+                return jsonify({"error": f"You can only collect your salary every {cooldown} hours. Please wait {hours}h {minutes}m."}), 429
+
+            # 3. Get job details
+            job_id = user_jt["job_id"]
+            cur.execute("SELECT * FROM jobs WHERE job_id = %s", (job_id,))
             job_data = cur.fetchone()
-    except mysql.connector.Error as err:
-        current_app.logger.error(f"Database error in collect, salary: {err}")
-        return jsonify({"error": "A database error occurred, please try again later."}), 500
-    if not job_data:
-        return jsonify({"error": "Invalid Job","message":"If you believe this is an error, contact a "
-                                                         "Administrator"}), 404
-    salary_class = job_data["salary_class"]
-    try:
-        with db.cursor(dictionary=True) as cur:
-            cur.execute("SELECT * FROM salary WHERE class = %i", (salary_class,))
+            if not job_data:
+                return jsonify({"error": "Invalid Job", "message": "If you believe this is an error, contact an Administrator"}), 404
+
+            # 4. Get salary details
+            salary_class = job_data["salary_class"]
+            cur.execute("SELECT * FROM salary WHERE class = %s", (salary_class,))
             salary_data = cur.fetchone()
-    except mysql.connector.Error as err:
-        current_app.logger.error(f"Database error in collect, salary: {err}")
-        return jsonify({"error": "A database error occurred, please try again later."}), 500
-    if not salary_data:
-        return jsonify({"error": "Invalid Salary Class"}), 500
-    amount = salary_data["money"]
-    try:
-        with db.cursor(dictionary=True) as cur:
-            cur.execute("UPDATE users SET balance = balance + %s WHERE bid = %s", (amount, bid,))
-            cur.execute("UPDATE user_jobs SET collected = %s WHERE bid = %s", (datetime.now(timezone.utc), bid,))
-            cur.execute("INSERT INTO transactions (source, target, amount, type, timestamp, status) VALUES (%s, %s, "
-                        "%s, %s, %s, %s)", "NULL", bid, amount, "salary", datetime.now(timezone.utc), "completed",)
+            if not salary_data:
+                return jsonify({"error": "Invalid Salary Class"}), 500
+
+            amount = salary_data["money"]
+
+            # 5. Perform transaction
+            db.start_transaction()
+            cur.execute("UPDATE users SET balance = balance + %s WHERE bid = %s", (amount, bid))
+            cur.execute("UPDATE user_jobs SET collected = %s WHERE bid = %s", (datetime.now(timezone.utc), bid))
+            cur.execute(
+                "INSERT INTO transactions (source, target, amount, type, timestamp, status) VALUES (%s, %s, %s, %s, %s, %s)",
+                ("SYSTEM", bid, amount, "salary", datetime.now(timezone.utc), "completed")
+            )
             cur.execute("SELECT balance FROM users WHERE bid = %s", (bid,))
-            new_bal2 = cur.fetchone()
-            new_bal = new_bal2["balance"]
+            new_balance = cur.fetchone()["balance"]
             db.commit()
+
+            return jsonify({"message": "Salary Collected", "New Balance": new_balance}), 200
+
     except mysql.connector.Error as err:
         db.rollback()
-        current_app.logger.error(f"Database error in collect, salary: {err}")
+        current_app.logger.error(f"Database error in /collect: {err}")
         return jsonify({"error": "A database error occurred, please try again later."}), 500
-    return jsonify({"message":"Salary Collected","New Balance":new_bal}), 200
+    except Exception as e:
+        db.rollback()
+        current_app.logger.error(f"An unexpected error occurred in /collect: {e}")
+        return jsonify({"error": "An unexpected server error occurred."}), 500
 
 
 
