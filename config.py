@@ -18,4 +18,4 @@ class Config:
 
     # Admin
     ADMIN_KEY = os.getenv('ADMIN_KEY')
-    COLLECT_COOLDOWN = os.getenv('COLLECT_COOLDOWN')
+    COLLECT_COOLDOWN = int(os.getenv('COLLECT_COOLDOWN', 24))
