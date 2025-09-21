@@ -73,6 +73,9 @@ def collect():
         return jsonify({"error": "A database error occurred, please try again later."}), 500
     return jsonify({"message":"Salary Collected","New Balance":new_bal}), 200
 
+
+
+# this should be fine
 @transactions_bp.route('/transfer', methods=['POST'])
 @jwt_required
 def transfer():
