@@ -165,9 +165,9 @@ def transfer():
     return transfer_boilerplate(user_bid, fbid, tbid, amount, note, type)
 
 # BUSINESS TRANSFERS
-@transactions_bp.route('/transfer', methods=['POST'])
+@transactions_bp.route('/transfer-business', methods=['POST'])
 @jwt_required
-def transfer():
+def transfer_business():
     # Ignore warning because it's dynamically added via jwt required.
     user_bid = request.bid
     data = request.get_json()
