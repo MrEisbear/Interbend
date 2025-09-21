@@ -41,7 +41,7 @@ def add_money():
     bid = data.get('bid')
     amount = data.get('amount')
     key = data.get('key')
-    if not bid or not money or not key:
+    if not bid or not amount or not key:
         return jsonify({"error": "BID, Amount and AdminKey are required"}), 400
     if not _keychecker(key):
         return jsonify({"error":"Admin Key required"}), 403
