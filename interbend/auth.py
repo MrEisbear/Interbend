@@ -42,7 +42,7 @@ def token_gen(bid):
         algorithm="HS256")
     return token
 
-def bot_key(input_key):
+def botKey(input_key):
     bot_key = current_app.config['BOT_KEY']
     if input_key != bot_key:
         return False 
@@ -50,3 +50,8 @@ def bot_key(input_key):
       return True
     return "OhShit" # This should never happen?? 
 # I dont think I should be a programmer, I dont even understand python and prefer golang or java or C#. ANYTHING THAT HAS {} 
+
+def bot_key(input_key):
+    return botKey(input_key)
+# Legacy, decaprecated (wait I didnt even implement this so why do I even keep this?)
+# Random bloat :3

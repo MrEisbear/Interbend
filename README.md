@@ -2,6 +2,9 @@
 
 Interbend is a Flask-based web application that provides a backend API for managing user balances and transactions. It features a robust authentication system using JWT and includes a separate set of administrative endpoints for system management. The application is designed to be extensible and can be used as a foundation for a variety of financial applications.
 
+### Note
+The GitHub branch may lag behind the development branch. For the most up-to-date code and pull requests, please visit [https://git.albioncloud.de/Eisbear/Interbend](https://git.albioncloud.de/Eisbear/Interbend).
+
 ## Installation
 
 1.  **Clone the repository:**
@@ -88,3 +91,9 @@ All admin endpoints require an admin key in the request body.
 -   **`POST /admin/change-password`**: Changes the password for a user.
     -   **Request Body**: `{ "bid": "user_bid", "password": "new_password", "key": "your_admin_key" }`
     -   **Response**: A success message.
+### Bot
+
+All bot endpoints require a bot key in the request body. These endpoints are designed with the InterBot discordbot in mind.
+You should never use these manually because they trust the discord bot for authentication and are therefore insecure.
+(i dont think thats best practice?)
+// TODO - Add Discord End Points here \/
