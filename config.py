@@ -9,6 +9,9 @@ class Config:
     # General Config
     JWT_KEY = os.getenv('JWT_KEY')
     JWT_EXPIRE = int(os.getenv('JWT_EXPIRATION', 30))
+    
+    # Gets the Key to ensure discord bot requests are being done by the discord bot
+    BOT_KEY = os.getenv('BOT_KEY')
 
     # Database
     DB_HOST = os.getenv('DB_HOST')

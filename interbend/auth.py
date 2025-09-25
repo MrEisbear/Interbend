@@ -41,3 +41,12 @@ def token_gen(bid):
         jwt_key,
         algorithm="HS256")
     return token
+
+def bot_key(input_key):
+    bot_key = current_app.config['BOT_KEY']
+    if input_key != bot_key:
+        return False 
+    if input_key == bot_key: # Extra Security which doesnt actually add anything but peace of mind.
+      return True
+    return "OhShit" # This should never happen?? 
+# I dont think I should be a programmer, I dont even understand python and prefer golang or java or C#. ANYTHING THAT HAS {} 
