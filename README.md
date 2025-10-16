@@ -1,5 +1,10 @@
 # Interbend API
+---
+# DECAPRECATED
+This was a first attempt at learning python for a private thing, but is now abandoned as I restart from 0 (MrEisbear/Silk)
 
+
+---
 Interbend is a Flask-based web application that provides a backend API for managing user balances and transactions. It features a robust authentication system using JWT and includes a separate set of administrative endpoints for system management. The application is designed to be extensible and can be used as a foundation for a variety of financial applications.
 
 ## Installation
